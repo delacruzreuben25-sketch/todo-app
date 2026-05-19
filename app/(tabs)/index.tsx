@@ -1,98 +1,253 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  StyleSheet,
+} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+type Task = {
+  id: string;
+  title: string;
+  completed: boolean;
+};
+
+const STORAGE_KEY = "todo_tasks";
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const [task, setTask] = useState("");
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  // Load tasks when the app starts
+  useEffect(() => {
+    loadTasks();
+  }, []);
+
+  // Save tasks whenever they change
+  useEffect(() => {
+    saveTasks();
+  }, [tasks]);
+
+  // READ from storage
+  const loadTasks = async () => {
+    try {
+      const savedTasks = await AsyncStorage.getItem(STORAGE_KEY);
+      if (savedTasks) {
+        setTasks(JSON.parse(savedTasks));
+      }
+    } catch (error) {
+      console.log("Error loading tasks:", error);
+    }
+  };
+
+  // SAVE to storage
+  const saveTasks = async () => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    } catch (error) {
+      console.log("Error saving tasks:", error);
+    }
+  };
+
+  // CREATE
+  const addTask = () => {
+    if (!task.trim()) return;
+
+    const newTask: Task = {
+      id: Date.now().toString(),
+      title: task.trim(),
+      completed: false,
+    };
+
+    setTasks([...tasks, newTask]);
+    setTask("");
+  };
+
+  // DELETE
+  const deleteTask = (id: string) => {
+    setTasks(tasks.filter((item) => item.id !== id));
+  };
+
+  // EDIT
+  const startEdit = (item: Task) => {
+    setTask(item.title);
+    setEditingId(item.id);
+  };
+
+  // UPDATE
+  const updateTask = () => {
+    if (!task.trim()) return;
+
+    setTasks(
+      tasks.map((item) =>
+        item.id === editingId
+          ? { ...item, title: task.trim() }
+          : item
+      )
+    );
+
+    setTask("");
+    setEditingId(null);
+  };
+
+  // TOGGLE COMPLETE
+  const toggleComplete = (id: string) => {
+    setTasks(
+      tasks.map((item) =>
+        item.id === id
+          ? { ...item, completed: !item.completed }
+          : item
+      )
+    );
+  };
+
+  const handleSubmit = () => {
+    if (editingId) {
+      updateTask();
+    } else {
+      addTask();
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>To-Do List</Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="Enter task..."
+        value={task}
+        onChangeText={setTask}
+      />
+
+      <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+        <Text style={styles.buttonText}>
+          {editingId ? "Update Task" : "Add Task"}
+        </Text>
+      </TouchableOpacity>
+
+      <FlatList
+        data={tasks}
+        keyExtractor={(item) => item.id}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No tasks yet.</Text>
+        }
+        renderItem={({ item }) => (
+          <View style={styles.taskItem}>
+            {/* Checkbox */}
+            <TouchableOpacity onPress={() => toggleComplete(item.id)}>
+              <View
+                style={[
+                  styles.checkbox,
+                  item.completed && styles.checkboxChecked,
+                ]}
+              />
+            </TouchableOpacity>
+
+            {/* Task Title */}
+            <Text
+              style={[
+                styles.taskText,
+                item.completed && styles.completedText,
+              ]}
+            >
+              {item.title}
+            </Text>
+
+            {/* Actions */}
+            <View style={styles.actions}>
+              <TouchableOpacity onPress={() => startEdit(item)}>
+                <Text style={styles.editText}>Edit</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => deleteTask(item.id)}>
+                <Text style={styles.deleteText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    padding: 20,
+    paddingTop: 60,
+    backgroundColor: "#f5f5f5",
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  title: {
+    fontSize: 28,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 20,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    backgroundColor: "#fff",
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  button: {
+    backgroundColor: "#4CAF50",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  buttonText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  taskItem: {
+    backgroundColor: "#fff",
+    padding: 15,
+    marginBottom: 10,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderWidth: 2,
+    borderColor: "#333",
+    borderRadius: 6,
+  },
+  checkboxChecked: {
+    backgroundColor: "#4CAF50",
+    borderColor: "#4CAF50",
+  },
+  taskText: {
+    flex: 1,
+    fontSize: 16,
+  },
+  completedText: {
+    textDecorationLine: "line-through",
+    color: "gray",
+  },
+  actions: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  editText: {
+    color: "blue",
+  },
+  deleteText: {
+    color: "red",
+  },
+  emptyText: {
+    textAlign: "center",
+    color: "gray",
+    marginTop: 20,
   },
 });
