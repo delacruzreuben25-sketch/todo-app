@@ -1,6 +1,6 @@
 # Contributions by the members
 
-## Dayta Jean Carla
+## commit Dayta Jean Carla
 - Built the user interface
 
 ## Tayo Daniel
