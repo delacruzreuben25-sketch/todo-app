@@ -1,50 +1,14 @@
-# Welcome to your Expo app 👋
+To-Do-List-App
+A simple tool that helps you keep track of everything you need to get done. It lets you quickly write down tasks, set reminders for deadlines, and organize your day so you don't forget important details. By keeping your chores and projects in one place on your phone or computer, it clears your mind and helps you stay focused and productive. Detailed System Flow:
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Adding a Task: You type a new task (e.g., "Buy bread").
 
-## Get started
+The app sends this to the server.
+The server saves it permanently in the database.
+The screen updates to show your new item instantly.
+Marking as Done: You click the checkbox.
 
-1. Install dependencies
+The server updates that specific task's status.
+Reminders: If you set a time, the system runs a timer in the background. When the time hits, it pushes a notification to your phone.
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Deletion: If you swipe to delete, the app tells the server to remove that entry from the database forever.
