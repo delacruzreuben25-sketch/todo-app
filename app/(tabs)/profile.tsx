@@ -2,96 +2,224 @@ import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
+  ScrollView,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 
-const STORAGE_KEY = "user_profile";
+type Task = {
+  id: string;
+  title: string;
+  completed: boolean;
+};
 
 export default function ProfileScreen() {
-  const [name, setName] = useState("");
+  const [userName, setUserName] = useState("");
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   useEffect(() => {
-    checkIfAlreadyLoggedIn();
+    loadProfile();
+    loadTasks();
   }, []);
 
-  const checkIfAlreadyLoggedIn = async () => {
-    const savedName = await AsyncStorage.getItem(STORAGE_KEY);
+  const loadProfile = async () => {
+    try {
+      const name = await AsyncStorage.getItem("user_profile");
 
-    // If user already exists → go to tasks automatically
-    if (savedName) {
-      router.replace("/(tabs)");
+      if (name) {
+        setUserName(name);
+      }
+    } catch (error) {
+      console.log(error);
     }
   };
 
-  const saveProfile = async () => {
-    if (!name.trim()) return;
+  const loadTasks = async () => {
+    try {
+      const savedTasks = await AsyncStorage.getItem("todo_tasks");
 
-    await AsyncStorage.setItem(STORAGE_KEY, name.trim());
-
-    // After saving → go to task screen
-    router.replace("/(tabs)");
+      if (savedTasks) {
+        setTasks(JSON.parse(savedTasks));
+      }
+    } catch (error) {
+      console.log(error);
+    }
   };
 
+  const logout = async () => {
+    await AsyncStorage.removeItem("user_profile");
+
+    router.replace("/login" as any);
+  };
+
+  // Statistics
+  const totalTasks = tasks.length;
+
+  const completedTasks = tasks.filter(
+    (task) => task.completed
+  ).length;
+
+  const pendingTasks = totalTasks - completedTasks;
+
+  const progress =
+    totalTasks > 0
+      ? Math.round((completedTasks / totalTasks) * 100)
+      : 0;
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome</Text>
+    <ScrollView style={styles.container}>
+      {/* PROFILE CARD */}
+      <View style={styles.profileCard}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {userName.charAt(0).toUpperCase()}
+          </Text>
+        </View>
 
-      <Text style={styles.subtitle}>
-        Please enter your name to continue
-      </Text>
+        <Text style={styles.name}>{userName}</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Your name..."
-        value={name}
-        onChangeText={setName}
-      />
+        <Text style={styles.subtitle}>
+          Stay productive and organized
+        </Text>
+      </View>
 
-      <TouchableOpacity style={styles.button} onPress={saveProfile}>
-        <Text style={styles.buttonText}>Get Started</Text>
+      {/* STATISTICS CARD */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Task Statistics</Text>
+
+        <View style={styles.statRow}>
+          <Text style={styles.statLabel}>Total Tasks</Text>
+          <Text style={styles.statValue}>{totalTasks}</Text>
+        </View>
+
+        <View style={styles.statRow}>
+          <Text style={styles.statLabel}>Completed</Text>
+          <Text style={styles.statValue}>{completedTasks}</Text>
+        </View>
+
+        <View style={styles.statRow}>
+          <Text style={styles.statLabel}>Pending</Text>
+          <Text style={styles.statValue}>{pendingTasks}</Text>
+        </View>
+
+        <View style={styles.statRow}>
+          <Text style={styles.statLabel}>Progress</Text>
+          <Text style={styles.statValue}>{progress}%</Text>
+        </View>
+      </View>
+
+      {/* MOTIVATION CARD */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Productivity</Text>
+
+        <Text style={styles.message}>
+          {progress === 100
+            ? "Amazing work! All tasks completed"
+            : progress >= 50
+            ? "You're doing great, keep going"
+            : "Small progress is still progress"}
+        </Text>
+      </View>
+
+      {/* LOGOUT BUTTON */}
+      <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+        <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    justifyContent: "center",
     backgroundColor: "#f5f5f5",
+    padding: 20,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 10,
-  },
-  subtitle: {
-    textAlign: "center",
-    color: "gray",
+
+  profileCard: {
+    backgroundColor: "#4CAF50",
+    borderRadius: 20,
+    padding: 25,
+    alignItems: "center",
+    marginTop: 40,
     marginBottom: 20,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
+
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: "#fff",
-    padding: 12,
-    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 15,
   },
-  button: {
-    backgroundColor: "#4CAF50",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
+
+  avatarText: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#4CAF50",
   },
-  buttonText: {
+
+  name: {
+    fontSize: 26,
+    fontWeight: "bold",
+    color: "#fff",
+  },
+
+  subtitle: {
+    color: "#e8f5e9",
+    marginTop: 5,
+  },
+
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+  },
+
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 15,
+  },
+
+  statRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+
+  statLabel: {
+    fontSize: 16,
+    color: "#555",
+  },
+
+  statValue: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+
+  message: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: "#555",
+  },
+
+  logoutButton: {
+    backgroundColor: "#f44336",
+    padding: 15,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 40,
+  },
+
+  logoutText: {
     color: "#fff",
     fontWeight: "bold",
+    fontSize: 16,
   },
 });
